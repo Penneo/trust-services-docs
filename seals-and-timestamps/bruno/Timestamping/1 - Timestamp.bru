@@ -1,0 +1,27 @@
+meta {
+  name: 1. Timestamp
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/timestamp
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: DPoP {{accessToken}}
+  Content-Type: application/timestamp-query
+}
+
+script:pre-request {
+  {
+    const path = require('path');
+    const signet = require(path.join(bru.cwd(), 'signet.js'));
+
+    const timestampHash = bru.interpolate('{{timestampHash}}');
+    const timestampRequest = signet.buildTimestampRequest(timestampHash);
+    req.setBody(timestampRequest);
+  }
+}

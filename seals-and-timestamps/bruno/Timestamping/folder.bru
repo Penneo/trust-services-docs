@@ -1,0 +1,12 @@
+meta {
+  name: Timestamping
+  seq: 3
+}
+
+docs {
+  The request script builds an RFC 3161 request from the collection's `timestampHash`, with a nonce.
+  The answer is a DER `TimeStampResp`.
+
+  In a real signed document you timestamp the seal: hash the signature from "4. Sign hash" with
+  SHA-512, and set that as `timestampHash`.
+}
