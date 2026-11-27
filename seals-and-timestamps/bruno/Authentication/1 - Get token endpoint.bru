@@ -1,0 +1,15 @@
+meta {
+  name: 1. Get token endpoint
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{metadataUrl}}
+  body: none
+  auth: none
+}
+
+script:post-response {
+  bru.setVar('tokenEndpoint', res.body.token_endpoint);
+}

@@ -1,0 +1,43 @@
+meta {
+  name: 2. Get access token
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{tokenEndpoint}}
+  body: formUrlEncoded
+  auth: none
+}
+
+body:form-urlencoded {
+  grant_type: client_credentials
+  client_assertion_type: urn:ietf:params:oauth:client-assertion-type:jwt-bearer
+  client_assertion: {{clientAssertion}}
+}
+
+script:pre-request {
+  {
+    const path = require('path');
+    const signet = require(path.join(bru.cwd(), 'signet.js'));
+
+    const tokenEndpoint = bru.getVar('tokenEndpoint');
+    const clientKeyPath = path.resolve(bru.cwd(), bru.getEnvVar('clientKeyFile'));
+    const clientKey = signet.readClientKey(clientKeyPath);
+    const clientAssertion = signet.buildClientAssertion({
+      clientId: bru.getEnvVar('clientId'),
+      clientKey,
+      keyId: bru.getEnvVar('clientKeyId'),
+      tokenEndpoint,
+    });
+    bru.setVar('clientAssertion', clientAssertion);
+
+    const dpopKey = JSON.parse(bru.getVar('dpopKey'));
+    const proof = signet.buildDpopProof({ dpopKey, method: 'POST', url: tokenEndpoint });
+    req.setHeader('DPoP', proof);
+  }
+}
+
+script:post-response {
+  bru.setVar('accessToken', res.body.access_token);
+}

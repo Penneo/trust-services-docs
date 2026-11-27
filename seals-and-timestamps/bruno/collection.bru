@@ -1,0 +1,54 @@
+meta {
+  name: Penneo seals and timestamps
+}
+
+vars:pre-request {
+  sealingHash: sO7NpunQ9VShHUqW+Msd6BnkqtvDXYfVcEDq40LGUSixhORqwVlJxz4Z0XA1iabakfl1/8WXfKeUXEyBwXSQdA==
+  timestampHash: eyxcaC7gXDUO/CnsowlHTI9hmF9/VZ/an+cwHXH/4UDL+Fs5xAJIgkUrNCvMWV60tqcPnPfc3Zd8jqXfupsXWg==
+}
+
+script:pre-request {
+  const path = require('path');
+  const signet = require(path.join(bru.cwd(), 'signet.js'));
+
+  if (!bru.hasVar('dpopKey')) {
+    const createdKey = signet.createDpopKey();
+    bru.setVar('dpopKey', JSON.stringify(createdKey));
+  }
+
+  const authorization = req.getHeader('Authorization') || '';
+  const sendsAccessToken = authorization.startsWith('DPoP ');
+  if (sendsAccessToken) {
+    const dpopKey = JSON.parse(bru.getVar('dpopKey'));
+    const url = bru.interpolate(req.getUrl());
+    const method = req.getMethod();
+    const accessToken = bru.getVar('accessToken');
+    const proof = signet.buildDpopProof({ dpopKey, method, url, accessToken });
+    req.setHeader('DPoP', proof);
+  }
+}
+
+docs {
+  Calls Penneo's sealing and timestamping API, following the integrator guide.
+
+  ## Before you start
+  1. Turn on **Developer Mode** (the `</>` icon in the collection's top bar). The scripts sign JWTs with Node's `crypto`,
+     which Safe Mode doesn't allow.
+  2. Pick the **Sandbox** environment and fill in four variables:
+     - `clientId`: your `client_id`
+     - `clientKeyId`: the `kid` of your key in the JWKS you sent us
+     - `clientKeyFile`: path to your client private key, PEM or JWK. Relative paths start at this folder
+     - `pin`: the PIN Penneo gives you with your credentials
+
+     `baseUrl` is already set. Two example hashes (base64 SHA-512) are in this collection's Vars
+     tab: `sealingHash` and `timestampHash`. Change them there.
+
+  ## Run in order
+  1. Authentication: get the token endpoint, then a token. Get a new token after 5 minutes.
+  2. Sealing: info, list credentials, authorize, sign hash. Each step saves what the next one needs.
+  3. Timestamping: timestamps `timestampHash`. In a real signed document you timestamp the seal:
+     the SHA-512 of the signature from sign hash.
+
+  A new DPoP key is made for each Bruno session. Every request gets a fresh DPoP proof from the
+  collection script.
+}
